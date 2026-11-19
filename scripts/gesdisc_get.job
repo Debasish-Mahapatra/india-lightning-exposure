@@ -1,0 +1,122 @@
+#!/bin/bash
+#SBATCH --job-name=job
+#SBATCH --qos=nf
+#SBATCH --account=betroch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
+#SBATCH --time=1-00:00:00
+#SBATCH --output=/ec/res4/scratch/bel5089/experiments/mrdsgo/logs/%x_%j.log
+# Half-hourly IMERG V07 precipitation or MERGIR brightness temperature from NASA
+# GES DISC (Earthdata login in ~/.netrc), only the box 67-98 E, 6-38 N (OPeNDAP
+# subsetting), one file per day: $S/obs_hh/<dataset>/<year>/<dataset>_YYYYMMDD.nc
+# Days already done are skipped, so the job can be resubmitted.
+# Pass DATASET (imerg or mergir) and YEARS; optional FIRST and LAST (first and
+# last day, e.g. LAST=2025-09-30 for IMERG Final; several jobs can share a year
+# on separate date ranges), P (parallel downloads, default 4), PAUSE
+# (seconds to wait after each request, default 0; GES DISC's MERGIR server
+# blocks us for about an hour when we ask too fast) and MINPARTS (merge a day
+# with at least this many parts; default all, for a last gap fill).
+# MERGIR comes from NASA's cloud OPeNDAP (opendap.earthdata.nasa.gov) unless
+# SOURCE=disc2; GES DISC's own disc2 server blocked us for asking too fast.
+# GES DISC sometimes answers with an HTML page instead of data: a part is kept
+# only if it is an HDF5 file, and missing parts are tried again (3 passes).
+# After a day with no part at all (server down) the job waits, longer each
+# time, and stops after 10 such days in a row (resubmit later).
+set -euo pipefail
+: "${DATASET:?}" "${YEARS:?}"
+S=/ec/res4/scratch/bel5089/experiments/mrdsgo
+module load python3/3.12.11-01
+C="-g -s -f -n -L --retry 5 --retry-delay 10"   # each request keeps its own cookie file (a shared one gets corrupted)
+url() {   # date (YYYY-MM-DD), slot -> URL of the subset
+    local d=$1 k=$2 y=${1:0:4} doy
+    doy=$(date -ud "$d" +%j)
+    if [[ $DATASET == imerg ]]; then
+        local m=$((k * 30)) s e
+        s=$(printf "%02d%02d00" $((m / 60)) $((m % 60)))
+        e=$(printf "%02d%02d59" $((m / 60)) $((m % 60 + 29)))
+        printf "https://gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L3/GPM_3IMERGHH.07/%s/%s/3B-HHR.MS.MRG.3IMERG.%s-S%s-E%s.%04d.V07B.HDF5.nc4?precipitation[0:0][2470:2780][960:1280],lat[960:1280],lon[2470:2780],time" \
+            $y $doy ${d//-/} $s $e $m
+    elif [[ ${SOURCE:-cloud} == disc2 ]]; then
+        printf "https://disc2.gesdisc.eosdis.nasa.gov/opendap/MERGED_IR/GPM_MERGIR.1/%s/%s/merg_%s%02d_4km-pixel.nc4.nc4?Tb[0:1][1814:2694][6790:7643],lat[1814:2694],lon[6790:7643],time" \
+            $y $doy ${d//-/} $k
+    else                      # NASA's cloud OPeNDAP: same subset, not the disc2 server that blocked us
+        printf "https://opendap.earthdata.nasa.gov/collections/C1432254058-GES_DISC/granules/GPM_MERGIR.1:merg_%s%02d_4km-pixel.nc4.dap.nc4?dap4.ce=/Tb%%5B0:1%%5D%%5B1814:2694%%5D%%5B6790:7643%%5D;/lat%%5B1814:2694%%5D;/lon%%5B6790:7643%%5D;/time" \
+            ${d//-/} $k
+    fi
+}
+part() {   # date, slot, folder -> folder/part_NN.nc4, kept only if it is HDF5
+    local f=$3/part_$(printf %02d $2).nc4
+    [[ -s $f ]] && return 0
+    curl $C -c $f.jar -b $f.jar -o $f.tmp "$(url $1 $2)" || { rm -f $f.tmp $f.jar; return 0; }
+    rm -f $f.jar
+    if [[ $(head -c 4 $f.tmp | tail -c 3) == HDF ]]; then mv $f.tmp $f; else rm -f $f.tmp; fi
+    sleep $PAUSE
+}
+export -f url part
+PAUSE=${PAUSE:-0}
+export DATASET C PAUSE SOURCE
+n=$([[ $DATASET == imerg ]] && echo 48 || echo 24)
+P=${P:-4}
+MINPARTS=${MINPARTS:-$n}
+FIRST=${FIRST:-0000-00-00}
+LAST=${LAST:-2100-01-01}
+empty=0
+for y in $YEARS; do
+    O=$S/obs_hh/$DATASET/$y
+    mkdir -p $O
+    for d in $(seq 0 $(( $(date -ud "$y-12-31" +%j) - 1 ))); do
+        day=$(date -ud "$y-01-01 +$d day" +%F)
+        [[ $day > $LAST ]] && break
+        [[ $day < $FIRST ]] && continue
+        out=$O/${DATASET}_${day//-/}.nc
+        [[ -s $out ]] && continue
+        tmp=$O/tmp_${day//-/}
+        mkdir -p $tmp
+        got=-1
+        for pass in 1 2 3; do
+            prev=$got
+            seq 0 $((n - 1)) | xargs -P $P -I{} bash -c "part $day {} $tmp" || true
+            got=$(find $tmp -name 'part_*.nc4' | wc -l)
+            [[ $got -ge $n || $got -eq $prev ]] && break
+            sleep 20
+        done
+        if [[ $got -eq 0 ]]; then
+            empty=$((empty + 1))
+            echo "$day: no part at all ($empty days in a row), left for a later run"
+            [[ $empty -ge 10 ]] && { echo "server not answering, stopping"; exit 3; }
+            sleep $((60 * empty))
+            continue
+        fi
+        empty=0
+        if [[ $got -lt $MINPARTS ]]; then
+            echo "$day: only $got of $n parts, left for a later run"
+            continue
+        fi
+        if python3 - "$tmp" "$out" "$DATASET" <<'PY'
+import glob, os, sys, xarray as xr
+tmp, out, ds = sys.argv[1:]
+v = "precipitation" if ds == "imerg" else "Tb"
+parts, bad = [], []
+for f in sorted(glob.glob(f"{tmp}/part_*.nc4")):
+    try:
+        parts.append(xr.open_dataset(f)[[v]].load())
+    except Exception:
+        bad.append(f)
+for f in bad:                       # unreadable part: delete it, fetch it again later
+    os.remove(f)
+if bad:
+    sys.exit(f"{len(bad)} unreadable parts removed")
+d = xr.concat(parts, "time").sortby("time")
+d.to_netcdf(out + ".part", encoding={v: {"zlib": True, "complevel": 4}})
+PY
+        then
+            mv $out.part $out
+            rm -rf $tmp
+            echo "$day done $(date -u +%H:%M) ($got parts)"
+        else
+            rm -f $out.part
+            echo "$day: merge failed, left for a later run"
+        fi
+    done
+done

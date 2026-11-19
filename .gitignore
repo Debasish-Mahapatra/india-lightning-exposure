@@ -1,0 +1,8 @@
+# Only the code and its description are tracked; the data, results and
+# manuscript stay on the HPC.
+/*
+!/.gitignore
+!/README.md
+!/scripts/
+__pycache__/
+*.pyc

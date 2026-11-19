@@ -1,0 +1,28 @@
+#!/bin/bash
+#SBATCH --job-name=job
+#SBATCH --qos=nf
+#SBATCH --account=betroch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64G
+#SBATCH --time=06:00:00
+#SBATCH --output=/ec/res4/scratch/bel5089/experiments/mrdsgo/logs/%x_%j.log
+# Runs python scripts of this folder side by side, separated by "+" (ECMWF's job
+# filter splits quoted arguments); each one's output goes to
+# logs/<job name>_<job id>_<script>_<arguments>.log
+# Usage (after sourcing wrf/india12km/scripts/common.sh):
+#   submit "what" scripts/py.job mergir_light.py 2024 2025 + check_false_flashes.py 2024
+set -u
+module load python3/3.12.11-01
+cd /ec/res4/hpcperm/bel5089/scirep_india_lightning/scripts
+L=/ec/res4/scratch/bel5089/experiments/mrdsgo/logs/${SLURM_JOB_NAME}_${SLURM_JOB_ID}
+cmds=() cur=""
+for w in "$@"; do
+    if [[ $w == + ]]; then cmds+=("$cur"); cur=""; else cur="${cur:+$cur }$w"; fi
+done
+[[ -n $cur ]] && cmds+=("$cur")
+for c in "${cmds[@]}"; do
+    python3 -u $c > ${L}_$(echo ${c%.py*}${c#*.py} | tr ' ' _).log 2>&1 &
+done
+wait
+echo "all done $(date -u +%H:%M)"

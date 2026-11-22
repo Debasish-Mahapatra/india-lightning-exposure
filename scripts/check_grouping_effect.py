@@ -108,7 +108,7 @@ for v in V:
         e = py.groupby("state").pd.sum() / py.groupby("state").population.sum()
         rows += [(y, s, x) for s, x in e.items()]
     m = pd.DataFrame(rows, columns=["year", "state", "exposure"]).merge(deaths[["year", "state", "total"]], on=["year", "state"])
-    keep_states = deaths[deaths.year.between(2021, 2024)].groupby("state").total.sum()
+    keep_states = deaths[deaths.year.between(2022, 2024)].groupby("state").total.sum()
     m = m[m.state.isin(keep_states[keep_states >= 60].index)].copy()
     m["x"] = np.log(m.exposure) - m.groupby("state").exposure.transform(lambda q: np.log(q).mean())
     m["y"] = np.log(m.total) - m.groupby("state").total.transform(lambda q: np.log(q).mean())

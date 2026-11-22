@@ -39,7 +39,7 @@ def lightning_rows(path):
         for m in re.finditer(r"^\s*(\d+)\s+([A-Z][A-Z &.()\-]+?)\s+((?:\d+\s+){%d}\d+)\s*$" % (4 * len(names) - 1),
                              text, re.M):
             v = [int(x) for x in m.group(3).split()]
-            rows[m.group(2).strip()] = v[4 * k:4 * k + 4]
+            rows[" ".join(m.group(2).split())] = v[4 * k:4 * k + 4]     # one space between words, whatever the PDF reader gives
         tot = re.search(r"TOTAL \(ALL INDIA\)\s+((?:\d+\s+){%d}\d+)" % (4 * len(names) - 1), text)
         if rows and tot:
             v = [int(x) for x in tot.group(1).split()]

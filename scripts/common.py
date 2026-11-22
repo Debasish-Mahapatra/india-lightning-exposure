@@ -9,7 +9,7 @@ import struct
 import numpy as np
 import shapely
 
-WS = pathlib.Path("/ec/res4/hpcperm/bel5089/scirep_india_lightning")
+WS = pathlib.Path(__file__).resolve().parent.parent   # the workspace: the folder that holds scripts/
 DATA = WS / "data"
 NRSC = DATA / "nrsc"                  # link, shared: raw daily files in all/, daily 0.25 degree counts in grid025/
 NRSC_DETAIL = DATA / "nrsc_detail"    # counts by month and UTC hour, and peak-current counts, per year

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Men's share of lightning deaths: recorded (NCRB 2022-2024) against the share
-expected from time outside the home (Time Use Survey 2019 and NRSC timing,
+expected from time outside the home (Time Use Survey 2024 and NRSC timing,
 sr_vulnerability.py), by State/UT and for India (npj Natural Hazards paper).
 
 States with at least 30 deaths in 2022-2024. Tests: (1) do the recorded shares

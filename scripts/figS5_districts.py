@@ -35,7 +35,7 @@ for k, (e, name) in enumerate((("E_net", "NRSC network, 2022\u20132025"),
     ax.yaxis.set_major_formatter(lambda v, _: f"{v:g}")
     ax.set_ylim(0.01 if e == "E_net" else 0.03, 30)
     ax.set_xlim(-1, 55)
-    ax.set_xlabel("People working in agriculture (% of population, Census 2011)")
+    ax.set_xlabel("Agricultural workers (% of population, Census 2011)")
     ax.set_ylabel("Exposure: flashes per km$^2$ per year\nwhere people live")
     ax.grid(color=GRID, lw=0.5)
     ax.set_axisbelow(True)

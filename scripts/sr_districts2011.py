@@ -89,3 +89,34 @@ for e in ("E_net", "E_sat"):
           f"{100 * s.agri_n[top].sum() / s.agri_n.sum():.0f}% of its agricultural workers; "
           f"population-weighted exposure of agricultural workers / of everyone: "
           f"{(s[e] * s.agri_n).sum() / s.agri_n.sum() / ((s[e] * s['pop']).sum() / s['pop'].sum()):.2f}")
+
+# Does the concentration of exposure in few districts come from the network's uneven detection? The 741 current
+# districts (Survey of India, as in sr_exposure.py; population of the whole official boundary) with exposure from
+# the network (2022-2025) and from satellite-expected CG lightning (2022-2023), on the cells that have both
+names = pd.read_csv(POP / "districts.csv", index_col="district")
+dc = pd.read_csv(POP / "pop_district_cell.csv")
+dc = dc[dc.district >= 0]
+dc = dc.assign(net=net[dc.j.values, dc.i.values], sat=sat[dc.j.values, dc.i.values])
+dc = dc[np.isfinite(dc.net) & np.isfinite(dc.sat)]
+g = dc.assign(pn=dc.population * dc.net, ps=dc.population * dc.sat).groupby("district")[["population", "pn", "ps"]].sum()
+
+
+def half(col):
+    """Districts that hold half of India's exposure, largest shares first (as sr_exposure.py)."""
+    v = g[col].sort_values(ascending=False)
+    return set(v.index[:int((100 * v.cumsum() / v.sum() <= 50).sum() + 1)])
+
+
+hn, hs = half("pn"), half("ps")
+people = lambda ids: 100 * g.population[list(ids)].sum() / g.population.sum()
+r = stats.spearmanr(g.pn, g.ps)
+print(f"\nCurrent districts ({len(g)}, {g.population.sum() / 1e6:,.1f} million people): half of India's exposure lies in "
+      f"{len(hn)} districts with network exposure ({people(hn):.0f}% of the people) and in {len(hs)} districts with "
+      f"satellite-expected CG exposure ({people(hs):.0f}% of the people); {len(hn & hs)} districts are in both sets; "
+      f"rank correlation of the district shares {r.statistic:.2f}")
+reg = names.state.map(TO_REGION).reindex(g.index).fillna("")
+print("share of India's exposure by region, network / satellite-expected CG (%): " + ", ".join(
+    f"{k} {100 * g.pn[reg == k].sum() / g.pn.sum():.0f} / {100 * g.ps[reg == k].sum() / g.ps.sum():.0f}" for k in REGIONS))
+top = lambda col, n=20: set(g[col].sort_values(ascending=False).index[:n])
+print(f"of the 20 districts with the largest network shares, {len(top('pn') & top('ps'))} are among the 20 largest "
+      f"satellite shares and {len(top('pn') & hs)} among the districts that hold half of the satellite-based exposure")

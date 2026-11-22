@@ -125,7 +125,7 @@ cx.axhline(0, color=GRID, lw=0.6, zorder=0)
 cx.axvline(0, color=GRID, lw=0.6, zorder=0)
 cx.set_xlabel("Exposure, change from geometric mean (%)", fontsize=6.3)
 cx.set_ylabel("Deaths, change from\ngeometric mean (%)", fontsize=6.3)
-cx.text(0.98, 0.04, f"{m.state.nunique()} states, 2022-2024; r = {r:.2f}\nPoisson slope {slope:.2f} "
+cx.text(0.98, 0.04, f"{m.state.nunique()} states, 2022-2024; r = {r:.2f}\nPoisson coefficient {slope:.2f} "
         f"({wf.lo:.2f} to {wf.hi:.2f})", transform=cx.transAxes, va="bottom", ha="right", fontsize=5.8, color=INK2)
 label(cx, "c", x=-0.3, y=1.0)
 print(f"within states: r = {r:.2f}, p = {p:.3f} ({dof} degrees of freedom, as if independent), least-squares slope "

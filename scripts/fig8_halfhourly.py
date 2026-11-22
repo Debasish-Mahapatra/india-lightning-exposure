@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Figure 8 (revision 7; formerly Fig. 9 a-c) and Supplementary Figure S8
+"""Figure 8 (revision 7; formerly Fig. 9 a-c) and Supplementary Figure S7
 (formerly Fig. 9 d, e): lightning, rain and cloud tops through the day.
 Top (IMERG V07 Final half-hourly rain and NRSC flashes, 2022 to September
 2025, days with both; data/obs_hh_025 from hh_cycle.py):
@@ -9,13 +9,13 @@ b: time of the peak of lightning (filled) and rain (open) by region, before
    and during the monsoon (maximum of the 24-hour harmonic of each cycle);
    the line is the lag of rain behind lightning;
 c: flashes per million tonnes of rain in each half hour, over India.
-Supplementary Fig. S8 (MERGIR 4 km brightness temperature; data/mergir_light
+Supplementary Fig. S7 (MERGIR 4 km brightness temperature; data/mergir_light
 from mergir_light.py; shown when available):
 a: cloud-top temperature over flashes (coldest pixel within 12 km), by season;
 b: mean flashes per 1 degree box and half hour against the box's area of cloud
    colder than 235 K and 208 K, by season.
 Output: manuscript/figures/fig8_halfhourly.png/.pdf and
-        manuscript/supplementary/figS8_cloud[_provisional].png/.pdf (provisional
+        manuscript/supplementary/figS7_cloud[_provisional].png/.pdf (provisional
         until MERGIR covers all of 2022-2025)
 Usage: fig8_halfhourly.py [final]
 """
@@ -136,7 +136,7 @@ fig.legend(handles=SEASON_LEGEND, loc="lower center", bbox_to_anchor=(0.5, 0.92)
 label(cx, "c", x=-0.22, y=1.0)
 print(save(fig, "fig8_halfhourly"))
 
-fig = plt.figure(figsize=(183 * MM, 82 * MM))                 # Supplementary Fig. S8: cloud tops
+fig = plt.figure(figsize=(183 * MM, 82 * MM))                 # Supplementary Fig. S7: cloud tops
 fig.legend(handles=SEASON_LEGEND, loc="lower center", bbox_to_anchor=(0.5, 0.92), ncol=4, fontsize=6, frameon=False,
            handlelength=2.0, columnspacing=1.5)
 
@@ -190,4 +190,4 @@ label(dx, "a", x=-0.12, y=1.0)
 label(ex, "b", x=-0.12, y=1.0)
 complete = final and len(ml) == 4                                # all of 2022-2025
 print(f"MERGIR years: {[f.stem[-4:] for f in ml]}")
-print(save(fig, "figS8_cloud" if complete else "figS8_cloud_provisional", sup=True))
+print(save(fig, "figS7_cloud" if complete else "figS7_cloud_provisional", sup=True))

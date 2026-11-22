@@ -7,7 +7,7 @@ on which the person's 0.25 degree cell had at least 1, 5 or 20 flashes (NRSC
 daily counts inside India, data/nrsc_detail), scaled for days without data,
 and the population-weighted flash density. Poisson regression of each year's
 deaths on the log of each measure with state fixed effects, 2022-2024, for
-the 15 states with at least 60 deaths in 2021-2024.
+the 15 states with at least 60 deaths in 2022-2024.
 Output: printed; results/log_sr_lightning_days.txt
 """
 import numpy as np
@@ -31,7 +31,7 @@ for y in (2021, 2022, 2023, 2024):
         w = g.population.values
         rows.append({"year": y, "state": s, **{k: (v[g.j, g.i] * w).sum() / w.sum() for k, v in meas.items()}})
 m = pd.DataFrame(rows).merge(deaths[["year", "state", "total"]], on=["year", "state"])
-keep = m.groupby("state").total.sum()
+keep = m[m.year >= 2022].groupby("state").total.sum()        # deaths 2022-2024
 mm = m[m.state.isin(keep[keep >= 60].index) & (m.year >= 2022)].copy()
 X0 = pd.get_dummies(mm.state, dtype=float)
 print(f"{mm.state.nunique()} states, 2022-2024; year-to-year spread (standard deviation of log deviations):")

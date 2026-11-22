@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Supplementary Figure S7 (revision 7; formerly main Fig. 8): how lightning
+"""Check, no longer a figure of the paper (Supplementary Fig. S7 of revision 7, main Fig. 8 before): how lightning
 follows CAPE, rain and CAPE times rain (NRSC
 flashes and ERA5 daily fields on the 0.25 degree grid, 2022-2025, days with an
 NRSC file, cells inside India). Descriptive only: the test of lightning
@@ -12,7 +12,7 @@ c: day-to-day rank correlation per cell of flashes and CAPE times rain.
 Printed only (the former panels b, c and e): mean flash density by daily CAPE
 and rain, flashes per million tonnes of ERA5 rain against CAPE by season, and
 the spatial correlation (log-log, across cells) of the seasonal mean maps.
-Output: manuscript/supplementary/figS7_drivers.png/.pdf
+Output: results/check_drivers.png; printed (results/log_check_drivers.txt)
 """
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import xarray as xr
 from scipy import stats
 
-from common import ERA5, NRSC_DETAIL, SEASONS, YEARS, india_area
+from common import ERA5, NRSC_DETAIL, RESULTS, SEASONS, YEARS, india_area
 from plotting import DRIVER_COLOR, GRID, INK, MM, PC, SEASON_COLOR, classes, colorbar, field, india_map, label, save
 
 A = india_area()
@@ -121,6 +121,14 @@ rho[(f > 0).sum(0) < 30] = np.nan
 grid = np.full(A.shape, np.nan)
 grid[cells] = rho
 print(f"day-to-day rank correlation with CAPE times rain: median {np.nanmedian(rho):.2f}")
+for name in ("Rain", "CAPE"):                                     # the same with rain alone and CAPE alone (printed only)
+    rx = rank(X[name])
+    rx = rx - rx.mean(0)
+    r1 = (ra * rx).sum(0) / np.sqrt((ra ** 2).sum(0) * (rx ** 2).sum(0))
+    r1[(f > 0).sum(0) < 30] = np.nan
+    both = np.isfinite(rho) & np.isfinite(r1)
+    print(f"day-to-day rank correlation with {name}: median {np.nanmedian(r1):.2f}; CAPE times rain is higher in "
+          f"{100 * np.mean(rho[both] > r1[both]):.0f}% of cells")
 fx = fig.add_axes([0.71, 0.13, 0.29, 0.85], projection=PC)
 india_map(fx, ticks=False)
 cm2, nm2 = classes([0.2, 0.3, 0.4, 0.5, 0.6, 0.7], "Reds", extend="both")
@@ -128,4 +136,5 @@ m2 = field(fx, grid, cm2, nm2)
 cax2 = fig.add_axes([0.74, 0.1, 0.23, 0.025])
 colorbar(fig, m2, cax2, "Day-to-day rank correlation of\nflashes and CAPE times rain", fmt="{x:g}")
 label(fx, "c", x=0.06, y=0.93)
-print(save(fig, "figS7_drivers", sup=True))
+fig.savefig(RESULTS / "check_drivers.png", dpi=200)
+print(RESULTS / "check_drivers.png")

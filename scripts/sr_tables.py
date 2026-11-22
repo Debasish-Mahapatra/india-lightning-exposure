@@ -48,24 +48,18 @@ slope = [f"{g.loc['States: slope', c]:.2f} ({g.loc['States: slope 95% low', c]:.
 grouping = [row("Flashes a year inside India (million)", "India, per km2 per year", "{:.1f}", 3.278),
             row("Flash density over India", "India, per km2 per year", "{:.2f}"),
             row("Flash density where people live", "India exposure (where people live)", "{:.2f}"),
-            row("Highest flash density of a 0.25$^\\circ$ cell", "Max cell (>= half in India)", "{:.1f}"),
-            *[row(f"Share of India's flashes, {r} (\\%)", f"{r}: share of India's flashes, %", "{:.1f}") for r in REGIONS],
-            *[row(f"Share of the year's flashes, {s.lower()} (\\%)", f"{s}: share of the year, %", "{:.1f}") for s in SEAS],
-            row("Peak hour over India, pre-monsoon season (IST)", "Peak hour IST, Pre-monsoon, India", "{:.0f}:00"),
-            row("Peak hour over India, monsoon season (IST)", "Peak hour IST, Monsoon, India", "{:.0f}:00"),
+            *[row(f"Share of India's flashes, {r} (\\%)", f"{r}: share of India's flashes, %", "{:.1f}")
+              for r in ("Central", "East")],                    # the two largest regions; Central changes most
+            row("Share of the year's flashes, monsoon season (\\%)", "Monsoon: share of the year, %", "{:.1f}"),
             row("Flashes of 20\\,kA or more (\\%)", "Share >= 20 kA, %", "{:.1f}"),
-            row("Flashes of 50\\,kA or more (\\%)", "Share >= 50 kA, %", "{:.2f}"),
             row("Districts holding half of India's exposure", "Districts holding half of the exposure", "{:.0f}"),
             row("Deaths against exposure across states: correlation", "States: r (log deaths per million, log exposure)", "{:.2f}"),
             f"Deaths against exposure across states: slope & {slope[0]} & {slope[1]} \\\\",
-            row("Deaths against exposure within states: correlation", "Within states: r", "{:.2f}"),
-            row("Deaths against exposure within states: $p$", "Within states: p", "{:.3f}"),
             *[row(f"Deaths per unit of exposure, {s}", f"Deaths per exposure, {s}", "{:.2f}")
-              for s in ("Madhya Pradesh", "Rajasthan", "Telangana", "Odisha", "Bihar", "Karnataka", "West Bengal", "Assam", "Kerala")],
-            *[row(f"Flashes per million tonnes of rain, {s.lower()}", f"{s}: flashes per Mt of rain", "{:.2f}") for s in SEAS],
-            row("Flashes with less than 2.5\\,mm of rain that day (\\%)", "Share with < 2.5 mm that day, %", "{:.1f}"),
-            row("The same in the pre-monsoon season (\\%)", "Pre-monsoon share with < 2.5 mm, %", "{:.1f}")]
-# activities counted as outdoor work: ICATUS 2016 codes of the Time Use Survey 2019
+              for s in ("Madhya Pradesh", "West Bengal")],
+            row("Flashes per million tonnes of rain, pre-monsoon season", "Pre-monsoon: flashes per Mt of rain", "{:.2f}"),
+            row("Pre-monsoon flashes with less than 2.5\\,mm of rain that day (\\%)", "Pre-monsoon share with < 2.5 mm, %", "{:.1f}")]
+# activities counted as outdoor work: ICATUS 2016 codes of the Time Use Survey 2024
 ACT = {121: "Growing crops", 122: "Raising animals", 123: "Forestry and logging", 124: "Fishing",
        125: "Aquaculture", 126: "Mining and quarrying", 128: "Construction",
        211: "Growing crops and kitchen gardening", 212: "Farming of animals", 213: "Hunting and trapping",
@@ -110,7 +104,9 @@ for src, g in mt.groupby("source", sort=False):
     models.append(f"\\multicolumn{{7}}{{@{{}}l}}{{\\textit{{{head}}}}} \\\\")
     prev = ""
     for _, r in g.iterrows():
-        lab = prev + " + $F$" if r.model == "+ farm share" else MODEL_TEX[r.model]
+        if "activities only" in r.model or "equal allocation" in r.model or r.model == "+ farm share":
+            continue                 # the two variants of outdoor work stay in results/deaths_models_table.csv
+        lab = MODEL_TEX[r.model]
         prev = lab
         models.append(f"{lab} & {coef(r, 'exposure')} & {coef(r, 'share')} & {coef(r, 'farm')} & "
                       f"{r.alpha:.2f} & {r.aic:.1f} & {100 * r.deviance_explained:.0f} \\\\")

@@ -62,7 +62,9 @@ def main():
     st = st.dissolve("ncrb").reset_index()
     names = list(st["ncrb"])
     dist = gpd.read_file(DISTRICTS).to_crs(4326)
-    dist["state"] = [NCRB_NAME.get(n, n) for n in dist["STATE"]]
+    # two spellings that only the district file has (the state file writes JAMMU AND KASHM|R)
+    dist_state = {"JAMMU AND KASHMIR": "JAMMU & KASHMIR", "DADRA & NGAR HAVELI & DAMAN & DIU": "D & N HAVELI AND DAMAN & DIU"}
+    dist["state"] = [NCRB_NAME.get(n, dist_state.get(n, n)) for n in dist["STATE"]]
     dist["DISTRICT"] = (dist["District"].str.replace(">", "A").str.replace("|", "I")   # SoI writes long a and i
                         .str.upper().str.title().str.replace(" - ", "-").str.replace("Twenty-Four", "24"))          # (Kolk>ta, Son|pat) as > and |
     dist["ST_NM"] = [state_label(n) for n in dist["state"]]

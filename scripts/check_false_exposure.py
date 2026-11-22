@@ -13,7 +13,7 @@ the flash density before the exposures are recomputed as in sr_vulnerability.py.
 Models: negative binomial across the 30 States/UTs of sr_deaths_models.py
 (exposure, exposure during outdoor work, each with the farm share), and the
 Poisson slope with state fixed effects within the 15 states with at least 60
-deaths in 2021-2024.
+deaths in 2022-2024.
 Output: printed (results/log_check_false_exposure.txt)
 """
 import numpy as np
@@ -162,7 +162,7 @@ for y in (2021, 2022, 2023, 2024):
         rows += [(y, s, lab, val) for s, val in e.items()]
 m = pd.DataFrame(rows, columns=["year", "state", "version", "E"]).merge(deaths[["year", "state", "total"]],
                                                                        on=["year", "state"])
-keep = deaths[deaths.year.between(2021, 2024)].groupby("state").total.sum()
+keep = deaths[deaths.year.between(2022, 2024)].groupby("state").total.sum()
 m = m[m.state.isin(keep[keep >= 60].index)]
 print(f"\nWithin {m.state.nunique()} states (Poisson, state fixed effects, 2022-2024):")
 for lab in ("all", "clean"):

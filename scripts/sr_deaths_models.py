@@ -8,14 +8,14 @@ person-years as offset and a negative binomial check for extra variance:
   within states (2022-2024):  log E[deaths_sy] = log(population) + a_s + b log H_sy
 where H is a hazard measure and X a vulnerability covariate. Hazard measures:
   E        NRSC flash density where people live (2022-2025)
-  E_out    the same while people are outside the home (Time Use Survey 2019)
+  E_out    the same while people are outside the home (Time Use Survey 2024)
   E_iss    satellite total lightning where people live (ISS LIS 2022-2023)
   E_cg     satellite CG where people live: ISS LIS total lightning times the
            CG fraction 1/(1+Z), Z from the IITM network by region and season
            (Ghosh et al. 2023; sr_detection.py), with low and high cases
   E_out_cg E_cg with the state's NRSC timing of outdoor exposure
 Covariates: Census 2011 agricultural workers per person, literacy; Time Use
-Survey 2019 median consumption per person (log) and share in katcha homes.
+Survey 2024 median consumption per person (log) and share in katcha homes.
   E_day    E times the state's whole-day share of people outside (no timing)
   E_open   the flash density where people live while they do outdoor work
            (tus_outdoor.py); E_open_act the same for the activity codes only
@@ -149,8 +149,8 @@ for lab, cols in (("hazard alone", ["logE"]), ("whole-day weighting (one slope)"
                   ("hazard + outdoor-work share", ["logE", "logO_open"]),
                   ("hazard + farm share", ["logE", "census_agri"]),
                   ("hazard + timing share outside + farm share", ["logE", "logO_timing", "census_agri"]),
-                  ("hazard + farm share of the 2019 survey", ["logE", "tus_agri"]),
-                  ("outdoor work + farm share of the 2019 survey", ["logE_open", "tus_agri"]),
+                  ("hazard + farm share of the 2024 survey", ["logE", "tus_agri"]),
+                  ("outdoor work + farm share of the 2024 survey", ["logE_open", "tus_agri"]),
                   ("outdoor work + farm share (Census 2011)", ["logE_open", "census_agri"]),
                   ("satellite CG, outdoor work (one slope)", ["logE_open_cg"]),
                   ("satellite CG, outdoor work + farm share", ["logE_open_cg", "census_agri"])):

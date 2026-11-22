@@ -17,28 +17,21 @@ import statsmodels.api as sm
 from common import DATA, POP, RESULTS, india_area, nrsc_clim
 
 rng = np.random.default_rng(29092026)
-T = DATA / "vulnerability/tus"
-exec(open(__file__.replace("tus_bootstrap.py", "tus_outdoor.py")).read().split("# activities outside the premises")[0])
+_src = open(__file__.replace("tus_bootstrap.py", "tus_outdoor.py")).read()
+_cut = "# every activity record, expanded to person and half-hour slot"
+assert _cut in _src, "tus_outdoor.py: the comment before the activity records has changed"
+exec(_src.split(_cut)[0])        # people, weights, states and the activity records (rec)
 # person x half-hour matrix of being outside (school excluded)
-L05 = {"FSU Serial No.": "fsu", "Sample hhld. No.": "hh", "Serial no.of member": "mem", "time from": "t0",
-       "time to": "t1", "3-didit activity code": "act", "where the activity was performed": "where"}
 key_index = pd.Series(np.arange(len(p)), index=p.key)
 M = np.zeros((len(p), 48), dtype=bool)
-for k in (1, 2, 3):
-    for ch in pd.read_csv(T / f"L05_part{k}/TUS106_L05_{k}.csv", dtype=str, chunksize=2_000_000,
-                          usecols=lambda c: c.strip() in L05):
-        ch.columns = [c.strip() for c in ch.columns]
-        ch = ch.rename(columns=L05)
-        ch = ch[ch["where"].str.strip().isin(["2", "3"]) & ~ch.act.str.strip().str[:2].isin(["61", "62", "63"])]
-        t0 = ch.t0.str[:2].astype(int) * 60 + ch.t0.str[3:5].astype(int)
-        t1 = ch.t1.str[:2].astype(int) * 60 + ch.t1.str[3:5].astype(int)
-        n = np.maximum(((t1 - t0) % 1440) // 30, 1).values
-        idx = key_index.reindex(ch.fsu.str.strip() + ch.hh.str.strip() + ch.mem.str.strip()).values
-        ok = np.isfinite(idx)
-        idx, s0, n = idx[ok].astype(int), (t0.values // 30)[ok], n[ok]
-        for j in range(n.max()):
-            sel = n > j
-            M[idx[sel], (s0[sel] + j) % 48] = True
+ch = rec[rec["where"].isin(["2", "3"]) & ~rec.act.str[:2].isin(["61", "62", "63"])]
+t0 = ch.t0.str[:2].astype(int) * 60 + ch.t0.str[3:5].astype(int)
+t1 = ch.t1.str[:2].astype(int) * 60 + ch.t1.str[3:5].astype(int)
+n = np.maximum(((t1 - t0) % 1440) // 30, 1).values
+idx, s0 = key_index.reindex(ch.key).values.astype(int), t0.values // 30
+for j in range(n.max()):
+    sel = n > j
+    M[idx[sel], (s0[sel] + j) % 48] = True
 print(f"{M.sum():,} person half hours outside (school excluded)")
 print("survey states not on the population grid:", sorted(set(p.state.dropna()) - set(pd.read_csv(POP / "pop_state_cell.csv").state)))
 
